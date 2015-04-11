@@ -5,6 +5,8 @@
 
 attribute  vec4 vPosition;
 uniform vec4 vColor;
+uniform mat4 tranMatrix;
+uniform mat4 pMatrix;
 varying vec4 fColor;
 
 uniform vec3 theta;
@@ -35,7 +37,7 @@ void main()
 		    0.0,  0.0, 0.0, 1.0 );
 
     fColor = vColor;
-    gl_Position = rz * ry * rx * vPosition;
+    gl_Position = pMatrix * tranMatrix * rz * ry * rx * vPosition;
 } 
 </script>
 
@@ -58,7 +60,7 @@ main()
 <script type="text/javascript" src="Cubes.js"></script>
 
 <body>
-<canvas id="gl-canvas" width="512"" height="512">
+<canvas id="gl-canvas" width="980"" height="512">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
    

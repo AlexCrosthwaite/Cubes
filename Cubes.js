@@ -14,9 +14,14 @@ var zAxis = 2;
 var axis = 0;
 var theta = [ 0, 0, 0 ];
 
-var thetaLoc;
-var vColorLoc;
+var thetaLoc, vColorLoc, tranMatrixLoc, pMatrixLoc;
+var pMatrix;
 var colorIndex = 1;
+var fov = 45;
+var near = 2;
+var far = 32;
+var aspect;
+
 
 var vertices = [
         vec3( -0.5, -0.5,  0.5 ),
@@ -40,6 +45,13 @@ var vertexColors = [
         [ 0.0, 1.0, 1.0, 1.0 ]   // cyan
     ];
 
+var translates = [
+    translate(-5, 0, -10),
+    translate(5, 0, -10),
+    translate(0, 0, -10)
+];
+
+
 window.onload = function init()
 {
     canvas = document.getElementById( "gl-canvas" );
@@ -52,6 +64,8 @@ window.onload = function init()
 
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0, 0, 0, 1 );
+
+    aspect = canvas.width/canvas.height;
     
     gl.enable(gl.DEPTH_TEST);
 
@@ -69,7 +83,7 @@ window.onload = function init()
     gl.vertexAttribPointer( vColor, 4, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( vColor );*/
 
-    vColorLoc = gl.getUniformLocation(program, "vColor");
+    
 
     var vBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, vBuffer );
@@ -80,6 +94,10 @@ window.onload = function init()
     gl.enableVertexAttribArray( vPosition );
 
     thetaLoc = gl.getUniformLocation(program, "theta"); 
+    vColorLoc = gl.getUniformLocation(program, "vColor");
+    tranMatrixLoc = gl.getUniformLocation(program, "tranMatrix");
+    pMatrixLoc = gl.getUniformLocation(program, "pMatrix");
+    pMatrix = perspective(fov, aspect, near, far);
     
     //event listeners for buttons
     
@@ -142,16 +160,20 @@ function render()
 
     theta[axis] += 2.0;
     gl.uniform3fv(thetaLoc, theta);
+    gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
-    vColor = vertexColors[colorIndex%8];
-    gl.uniform4fv(vColorLoc, vColor)
+    for(var i = 0; i < translates.length; i++)
+    {
+        gl.uniformMatrix4fv(tranMatrixLoc, false, flatten(translates[i]));
+        vColor = vertexColors[(colorIndex + i)%8];
+        gl.uniform4fv(vColorLoc, vColor)
 
-    gl.drawArrays( gl.TRIANGLE_STRIP, 0, 14 );
+        gl.drawArrays( gl.TRIANGLE_STRIP, 0, 14 );
 
-    vColor = vertexColors[6];
-    gl.uniform4fv(vColorLoc, vColor);
+        vColor = vertexColors[6];
+        gl.uniform4fv(vColorLoc, vColor);
 
-    gl.drawArrays( gl.LINES, 14, NumVertices - 14 );
-
+        gl.drawArrays( gl.LINES, 14, NumVertices - 14 );
+    }
     requestAnimFrame( render );
 }

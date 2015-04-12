@@ -5,7 +5,6 @@ var gl;
 var NumVertices  = 38;
 
 var points = [];
-var colors = [];
 
 var xAxis = 0;
 var yAxis = 1;
@@ -14,26 +13,35 @@ var zAxis = 2;
 var axis = 0;
 var theta = [ 0, 0, 0 ];
 
-var thetaLoc, vColorLoc, tranMatrixLoc, pMatrixLoc;
+var thetaLoc, vColorLoc, MVMatrixLoc, pMatrixLoc;
 var pMatrix;
-var colorIndex = 1;
-var fov = 45;
-var near = 2;
-var far = 32;
-var aspect;
+var colorIndex = 0;
 
+//Variables related to the camera position and movement
+var camera = {
+    x : 0,
+    y : 0,
+    z : -45,
+    fovx : 90,
+    near : 1, 
+    far : 70,
+    aspect : undefined,
+    heading : 0
+}
 
+//The 8 vertices for a cube centered around the origin
 var vertices = [
-        vec3( -0.5, -0.5,  0.5 ),
-        vec3( -0.5,  0.5,  0.5 ),
-        vec3(  0.5,  0.5,  0.5 ),
-        vec3(  0.5, -0.5,  0.5 ),
-        vec3( -0.5, -0.5, -0.5 ),
-        vec3( -0.5,  0.5, -0.5 ),
-        vec3(  0.5,  0.5, -0.5 ),
-        vec3(  0.5, -0.5, -0.5 )
+        vec3( -2, -2,  2 ),
+        vec3( -2,  2,  2 ),
+        vec3(  2,  2,  2 ),
+        vec3(  2, -2,  2 ),
+        vec3( -2, -2, -2 ),
+        vec3( -2,  2, -2 ),
+        vec3(  2,  2, -2 ),
+        vec3(  2, -2, -2 )
     ];
 
+//The 8 different colors used for the 8 different cubes
 var vertexColors = [
         [ 0.0, 0.0, 0.0, 1.0 ],  // black
         [ 1.0, 0.0, 0.0, 1.0 ],  // red
@@ -41,14 +49,20 @@ var vertexColors = [
         [ 0.0, 1.0, 0.0, 1.0 ],  // green
         [ 0.0, 0.0, 1.0, 1.0 ],  // blue
         [ 1.0, 0.0, 1.0, 1.0 ],  // magenta
-        [ 1.0, 1.0, 1.0, 1.0 ],  // white
+        [ 1.1, 0.5, 0.25, 1.0 ],  // white
         [ 0.0, 1.0, 1.0, 1.0 ]   // cyan
     ];
 
+//The 8 different translation matrices used to instance the initial cube to 8 different locations
 var translates = [
-    translate(-5, 0, -10),
-    translate(5, 0, -10),
-    translate(0, 0, -10)
+    translate(10, 10, 10),
+    translate(10, 10, -10),
+    translate(10, -10, 10),
+    translate(10, -10, -10),
+    translate(-10, 10, 10),
+    translate(-10, 10, -10),
+    translate(-10, -10, 10),
+    translate(-10, -10, -10)
 ];
 
 
@@ -65,7 +79,7 @@ window.onload = function init()
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0, 0, 0, 1 );
 
-    aspect = canvas.width/canvas.height;
+    camera.aspect = canvas.width/canvas.height;
     
     gl.enable(gl.DEPTH_TEST);
 
@@ -74,15 +88,6 @@ window.onload = function init()
     //
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
-    
-    /*var cBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, cBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW );*/
-
-    /*var vColor = gl.getAttribLocation( program, "vColor" );
-    gl.vertexAttribPointer( vColor, 4, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vColor );*/
-
     
 
     var vBuffer = gl.createBuffer();
@@ -95,57 +100,90 @@ window.onload = function init()
 
     thetaLoc = gl.getUniformLocation(program, "theta"); 
     vColorLoc = gl.getUniformLocation(program, "vColor");
-    tranMatrixLoc = gl.getUniformLocation(program, "tranMatrix");
+    MVMatrixLoc = gl.getUniformLocation(program, "MVMatrix");
     pMatrixLoc = gl.getUniformLocation(program, "pMatrix");
-    pMatrix = perspective(fov, aspect, near, far);
     
-    //event listeners for buttons
     
-    document.getElementById( "xButton" ).onclick = function () {
-        axis = xAxis;
-    };
-    document.getElementById( "yButton" ).onclick = function () {
-        axis = yAxis;
-    };
-    document.getElementById( "zButton" ).onclick = function () {
-        axis = zAxis;
-    };
+    //The Event listeners for different key presses
 
     window.onkeypress = function(event) {
     	var key = String.fromCharCode(event.keyCode);
     	switch(key){
-    		case 'c':
+    		case 'c': //Cycle through the colors of the cubes
     		colorIndex++;
-    		break;
+            break;
+            case 'r': //Reset the position of the cubes to the original specifications
+            camera.x = 0;
+            camera.y = 0;
+            camera.z = -45;
+            camera.fovx = 45;
+            camera.heading = 0;
+            break;
+            case 'i': //Account for the current heading and move the camera forward in that direction
+            camera.z += 0.25*Math.cos(radians(camera.heading));
+            camera.x -= 0.25*Math.sin(radians(camera.heading));
+            break;
+            case 'j': //Account for the current heading and move the camera left in that direction
+            camera.x += 0.25*Math.cos(radians(camera.heading));
+            camera.z += 0.25*Math.sin(radians(camera.heading));
+            break;
+            case 'k': //Account for the current heading and move the camera right in that direction
+            camera.x -= 0.25*Math.cos(radians(camera.heading));
+            camera.z -= 0.25*Math.sin(radians(camera.heading));
+            break;
+            case 'm': //Account for the current heading and move the camera down in that direction
+            camera.z -= 0.25*Math.cos(radians(camera.heading));
+            camera.x += 0.25*Math.sin(radians(camera.heading));
+            break;
+            case 'n': //Make the field of view narrower
+            camera.fovx -= 1;
+            break;
+            case 'w': //Make the field of view wider
+            camera.fovx += 1;
+            break;
+
     	}
     }
     
+    window.onkeydown = function(event) {
+        var key = event.keyCode;
+        switch(key){
+            case 38: //Up arrow key
+            camera.y -= 0.25;
+            break;
+            case 40: //Down arrow key
+            camera.y += 0.25;
+            break;
+            case 37: //Left arrow key
+            camera.heading -= 1;
+            break;
+            case 39: //Right arrow key
+            camera.heading += 1;
+            break;
+        }
+    }
     render();
         
 }
 
 function colorCube()
 {
-    // We need to parition the quad into two triangles in order for
-    // WebGL to be able to render it.  In this case, we create two
-    // triangles from the quad indices
+    //The cube is drawn using a single triangle strip and 14 points
     
     //vertex color assigned by the index of the vertex
     
     var indices = [ 0, 4, 7, 6, 3, 2, 1, 6, 5, 4, 1, 0, 3, 7 ];
 
     for ( var i = 0; i < indices.length; ++i ) {
-        points.push( vertices[indices[i]] );
-        colors.push( vertexColors[5] );
-    
-        // for solid colored faces use 
-        //colors.push(vertexColors[a]);
-        
+        points.push( vertices[indices[i]] );        
     }
 }
 
 function outLineCube()
 {
+    //The outline of the faces is generated by drawing each edge (line) on the cube.
+    //The color of the outline will be chosen in render() to be white
+
 	var indices = [ 0, 1, 1, 2, 2, 3, 3, 0, 0, 4, 1, 5, 2, 6, 3, 7, 5, 6, 6, 7, 7, 4, 4, 5];
 
 	for (var i = 0; i < indices.length; ++i) {
@@ -158,19 +196,38 @@ function render()
 {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    theta[axis] += 2.0;
+    //delta theta is chosen to be 6 degrees to generate 60 rpm
+    theta[axis] += 6.0;
     gl.uniform3fv(thetaLoc, theta);
+
+    //---Perspective matrix---
+    //The fovy parameter is calculated using a conversion between fovx and fovy.
+    //Other parameters are retreived from the camera variable
+    pMatrix = perspective(180 * 2 * Math.atan(Math.tan(radians(camera.fovx / 2) / camera.aspect)) / Math.PI, camera.aspect, camera.near, camera.far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
+
+    //---View Matrix---
+    //The view matrix is generated by multiplying the rotation matrix (chosen to be rotation about the y axis)
+    // and the translation specified by the camera variable (based on previous input from the user).
+    var viewMatrix = mult(rotate(camera.heading, [0, 1, 0]), translate(camera.x, camera.y, camera.z));
+
+
+    //---Instancing---
+    //Use each of the different instancing transformations to generate a new cube in world coordinates.
+    //The color of each cube is generated by the current iteration of the loop.
     for(var i = 0; i < translates.length; i++)
     {
-        gl.uniformMatrix4fv(tranMatrixLoc, false, flatten(translates[i]));
+        //---Model View Matrix---
+        //The model view Matrix is generated by multiplying the view matrix by the model matrix (for
+        // each specific instance)
+        gl.uniformMatrix4fv(MVMatrixLoc, false, flatten(mult(viewMatrix, translates[i])));
         vColor = vertexColors[(colorIndex + i)%8];
         gl.uniform4fv(vColorLoc, vColor)
 
         gl.drawArrays( gl.TRIANGLE_STRIP, 0, 14 );
 
-        vColor = vertexColors[6];
+        vColor = [1, 1, 1, 1]
         gl.uniform4fv(vColorLoc, vColor);
 
         gl.drawArrays( gl.LINES, 14, NumVertices - 14 );

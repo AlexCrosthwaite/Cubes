@@ -9,21 +9,21 @@ uniform mat4 MVMatrix;
 uniform mat4 pMatrix;
 varying vec4 fColor;
 
-uniform vec3 theta;
+uniform float theta;
 
 void main() 
 {
     // Compute the sines and cosines of theta for each of
     //   the three axes in one computation.
-    vec3 angles = radians( theta );
-    vec3 c = cos( angles );
-    vec3 s = sin( angles );
+    float angle = radians( theta );
+    float c = cos( angle );
+    float s = sin( angle );
 
-    float scalar = 1.0 + 0.1 * c.x;
+    float scalar = 1.0 + 0.1 * s;
     // Remeber: thse matrices are column-major
     mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
-		    0.0,  c.x,  s.x, 0.0,
-		    0.0, -s.x,  c.x, 0.0,
+		    0.0,  c,  s, 0.0,
+		    0.0, -s,  c, 0.0,
 		    0.0,  0.0,  0.0, 1.0 );
 
     mat4 scale = mat4( scalar, 0, 0, 0,
@@ -49,13 +49,13 @@ main()
 }
 </script>
 
-<script type="text/javascript" src="../Common/webgl-utils.js"></script>
-<script type="text/javascript" src="../Common/initShaders.js"></script>
-<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="initShaders.js"></script>
+<script type="text/javascript" src="MV.js"></script>
 <script type="text/javascript" src="Cubes.js"></script>
 
 <body>
-<canvas id="gl-canvas" width="960"" height="512">
+<canvas id="gl-canvas" width="960"" height="540">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
 

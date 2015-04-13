@@ -1,21 +1,13 @@
 
 var canvas;
 var gl;
-
-var NumVertices  = 38;
-
 var points = [];
-
-var xAxis = 0;
-var yAxis = 1;
-var zAxis = 2;
-
-var axis = 0;
-var theta = [ 0, 0, 0 ];
-
+var theta = 0;
 var thetaLoc, vColorLoc, MVMatrixLoc, pMatrixLoc;
-var pMatrix;
+var pMatrix;    
+var IMatrix = mat4(1);
 var colorIndex = 0;
+var displayCH = false;
 
 //Variables related to the camera position and movement
 var camera = {
@@ -23,7 +15,7 @@ var camera = {
     y : 0,
     z : -45,
     fovx : 90,
-    near : 1, 
+    near : 0.1, 
     far : 70,
     aspect : undefined,
     heading : 0
@@ -75,6 +67,7 @@ window.onload = function init()
 
     colorCube();
     outLineCube();
+    crosshair();
 
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 0, 0, 0, 1 );
@@ -107,7 +100,7 @@ window.onload = function init()
     //The Event listeners for different key presses
 
     window.onkeypress = function(event) {
-    	var key = String.fromCharCode(event.keyCode);
+    	var key = String.fromCharCode(event.keyCode).toLowerCase();
     	switch(key){
     		case 'c': //Cycle through the colors of the cubes
     		colorIndex++;
@@ -116,7 +109,7 @@ window.onload = function init()
             camera.x = 0;
             camera.y = 0;
             camera.z = -45;
-            camera.fovx = 45;
+            camera.fovx = 90;
             camera.heading = 0;
             break;
             case 'i': //Account for the current heading and move the camera forward in that direction
@@ -140,6 +133,9 @@ window.onload = function init()
             break;
             case 'w': //Make the field of view wider
             camera.fovx += 1;
+            break;
+            case '+':
+            displayCH = !displayCH;
             break;
 
     	}
@@ -192,13 +188,23 @@ function outLineCube()
 
 }
 
+function crosshair()
+{
+    points.push(vec3(-0.05, 0, 0));
+    points.push(vec3( 0.05, 0, 0));
+    points.push(vec3( 0,-0.05, 0));
+    points.push(vec3( 0, 0.05, 0));
+}
+
 function render()
 {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+
 
     //delta theta is chosen to be 6 degrees to generate 60 rpm
-    theta[axis] += 6.0;
-    gl.uniform3fv(thetaLoc, theta);
+    theta += 6.0;
+    gl.uniform1f(thetaLoc, theta);
 
     //---Perspective matrix---
     //The fovy parameter is calculated using a conversion between fovx and fovy.
@@ -230,7 +236,19 @@ function render()
         vColor = [1, 1, 1, 1]
         gl.uniform4fv(vColorLoc, vColor);
 
-        gl.drawArrays( gl.LINES, 14, NumVertices - 14 );
+        gl.drawArrays( gl.LINES, 14, 24 );
     }
+
+    if(displayCH == true)
+    {
+        gl.uniform4fv(vColorLoc, [1.0, 1.0, 1.0, 1.0])
+        gl.uniform1f(thetaLoc, 0);
+        gl.uniformMatrix4fv(pMatrixLoc, false, flatten(ortho(-1.0 * camera.aspect, 1.0 * camera.aspect, -1.0, 1.0, 0, 1.0)));
+        gl.uniformMatrix4fv(MVMatrixLoc, false, flatten(IMatrix));
+        gl.disable(gl.DEPTH_TEST);
+        gl.drawArrays(gl.LINES, 38, 4);
+    }
+    
+
     requestAnimFrame( render );
 }

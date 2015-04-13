@@ -209,7 +209,7 @@ function render()
     //---Perspective matrix---
     //The fovy parameter is calculated using a conversion between fovx and fovy.
     //Other parameters are retreived from the camera variable
-    pMatrix = perspective(180 * 2 * Math.atan(Math.tan(radians(camera.fovx / 2) / camera.aspect)) / Math.PI, camera.aspect, camera.near, camera.far);
+    pMatrix = perspective(camera.fovx / camera.aspect, camera.aspect, camera.near, camera.far);
     gl.uniformMatrix4fv(pMatrixLoc, false, flatten(pMatrix));
 
 
